@@ -1,0 +1,8 @@
+modify it to add a log record, log file is datapipe.log
+cc -O -o datapipe datapipe.c
+./datapipe 127.0.0.1 11111 127.0.0.1 22222
+tail -f datapipe.log
+
+python server.py
+python client.py
+
