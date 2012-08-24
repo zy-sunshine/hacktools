@@ -4,7 +4,7 @@ from threading import Thread
 
 my_unix_command = ['bc']
 HOST = '127.0.0.1'
-PORT = 22222
+PORT = 2222
 
 def pipe_command(arg_list, standard_input=False):
     "arg_list is [command, arg1, ...], standard_input is string"

@@ -46,7 +46,7 @@
 #include <time.h>
 #if defined(__WIN32__) || defined(WIN32) || defined(_WIN32)
   #define WIN32_LEAN_AND_MEAN
-  #include <winsock.h>
+  #include <winsock2.h>
   #define bzero(p, l) memset(p, 0, l)
   #define bcopy(s, t, l) memmove(t, s, l)
 #else
@@ -91,7 +91,6 @@ int main(int argc, char *argv[])
   int i;
   struct client_t clients[MAXCLIENTS];
   FILE *fd_log;
-  fd_log = fopen("datapipe.log", "a");
 
 #if defined(__WIN32__) || defined(WIN32) || defined(_WIN32)
   /* Winsock needs additional startup activities */
@@ -99,7 +98,7 @@ int main(int argc, char *argv[])
   WSAStartup(MAKEWORD(1,1), &wsadata);
 #endif
 
-
+  fd_log = fopen("datapipe.log", "a");
   /* check number of command line arguments */
   if (argc != 5) {
     fprintf(stderr,"Usage: %s localhost localport remotehost remoteport\n",argv[0]);
@@ -171,15 +170,15 @@ int main(int argc, char *argv[])
 
 
   /* fork off into the background. */
-#if !defined(__WIN32__) && !defined(WIN32) && !defined(_WIN32)
-  if ((i = fork()) == -1) {
-    perror("fork");
-    return 20;
-  }
-  if (i > 0)
-    return 0;
-  setsid();
-#endif
+//#if !defined(__WIN32__) && !defined(WIN32) && !defined(_WIN32)
+//  if ((i = fork()) == -1) {
+//    perror("fork");
+//    return 20;
+//  }
+//  if (i > 0)
+//    return 0;
+//  setsid();
+//#endif
 
   
   /* main polling loop. */
@@ -223,11 +222,11 @@ int main(int argc, char *argv[])
           perror("socket");
           closesocket(csock);
         }
-        else if (bind(osock, (struct sockaddr *)&laddr, sizeof(laddr))) {
-          perror("bind");
-          closesocket(csock);
-          closesocket(osock);
-        }
+        // else if (bind(osock, (struct sockaddr *)&laddr, sizeof(laddr))) {
+          // perror("bind");
+          // closesocket(csock);
+          // closesocket(osock);
+        // }
         else if (connect(osock, (struct sockaddr *)&oaddr, sizeof(oaddr))) {
           perror("connect");
           closesocket(csock);
