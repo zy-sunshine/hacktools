@@ -1,0 +1,74 @@
+#!/bin/bash
+#
+
+# source function library
+if [ -f /etc/rc.d/init.d/functions ]; then
+    . /etc/rc.d/init.d/functions
+fi
+
+prog="systemcalld"
+PYTHON=/usr/bin/python
+if [ ! -f /etc/systemcalld.conf ]; then
+    echo 'Please link your config file to /etc/systemcalld.conf'
+    exit -1
+fi
+proxy_dir=$(sed -n 's/^systemcalld_base=\([^ ]*.*\)/\1/p' < /etc/systemcalld.conf)
+if [ "x$proxy_dir" == "x" -o ! -d "$proxy_dir" ]; then
+    echo 'Get base directory(from /etc/systemcalld.conf) is "'$proxy_dir'"'
+    if [ ! -d $proxy_dir ]; then
+        echo "Base directory is not exists"
+    fi
+    exit -1
+fi
+proxy=$proxy_dir/systemcalld.sh
+log=/var/log/systemcalld.log
+lock=/var/lock/$prog
+
+runlevel=$(set -- $(runlevel); eval "echo \$$#" )
+
+start()
+{
+   echo $"Starting $prog $proxy"
+   stop
+   #if [ -f $lock ]; then
+   #   echo "$prog is running, please stop it and start."
+   #   return
+   #fi
+   [ -f "$log" ] && mv -f "$log" "$log.old"
+   $proxy 1>$log  2>&1 &
+   touch $lock
+   sleep 1
+}
+
+stop()
+{
+   echo $"Stopping $prog"
+   #if [ ! -f $lock ]; then
+   #   echo "$prog is not running, please run it first."
+   #   return
+   #fi
+   kill -9 $(ps aux | grep "systemcalld.sh" | awk '{print $2}')
+   kill -9 $(ps aux | grep "autossh" | awk '{print $2}')
+   rm -f $lock
+}
+
+restart() {
+   stop
+   start
+}
+
+
+case "$1" in
+   start)
+       start
+       ;;
+   stop)
+       stop
+       ;;
+   restart)
+       restart
+       ;;
+   *)
+echo $"Usage: $0 {start|stop|restart}"
+exit 0
+esac
