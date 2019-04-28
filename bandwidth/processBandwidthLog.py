@@ -1,5 +1,6 @@
 import re
 from acom.utils.cmdwrapper import runcmd
+from acom.utils.sysutil import dtUtil
 
 class ProcessMonitor(object):
     CMD_NETHOGS = "nethogs -t -d5 -s -v3"
@@ -26,17 +27,21 @@ python3/14048/1001      0.0018549       0.0048275
             self.writeStdout(line)
 
     def work(self):
-        runcmd(self.CMD_NETHOGS, trycnt=0, callback=self)
+        runcmd(self.CMD_NETHOGS, trycnt=0, printout=False, callback=self)
 
     def parseLine(self, line):
         if self.isLineStartswithIp(line): return
         info = self.tryParseProcess(line)
         if not info: return
-        with open('/proc/%s/cmdline' % info['pid'], 'rt') as fp:
-            info['cmdline'] = fp.read()
+        try:
+            with open('/proc/%s/cmdline' % info['pid'], 'rt') as fp:
+                info['cmdline'] = fp.read()
+        except OSError:
+            info['cmdline'] = info['other']
         if info['sent'] < 0.01: return  # omit 0.01MB
         if info['received'] < 0.01: return  # omit 0.01MB
-        print('%(pid)s %(sent)s %(received)s %(cmdline)s' % info)
+        info['dt'] = dtUtil.now().strftime('%Y-%m-%d %H:%M:%S')
+        print('[%(dt)s] %(pid)s\t%(sent).02f\t%(received).02f\t%(cmdline)s' % info)
 
     IP_PATTERN = re.compile(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
     def isLineStartswithIp(self, line):
@@ -49,16 +54,18 @@ python3/14048/1001      0.0018549       0.0048275
         if match:
             return True
 
-    PROCESS_PATTERN = re.compile(r'(\d+?)/(\d+?)\W+([0-9\.]+?)\W+([0-9\.]+?)$')
+    PROCESS_PATTERN = re.compile(r'(.*)/(\d+?)/(\d+?)\W+([0-9\.]+?)\W+([0-9\.]+?)$')
     def tryParseProcess(self, line):
         match = self.PROCESS_PATTERN.search(line)
         if not match: return None
         m = match.groups()
         return {
-            'pid': m[0],
-            'uid': m[1],
-            'sent': m[2],
-            'received': m[3],
+            'line': line,
+            'other': m[0],
+            'pid': int(m[1]),
+            'uid': int(m[2]),
+            'sent': float(m[3]),
+            'received': float(m[4]),
         }
 
 if __name__ == '__main__':
