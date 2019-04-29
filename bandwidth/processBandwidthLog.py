@@ -1,11 +1,14 @@
 import sys
 import re
+from time import sleep
 from acom.utils.cmdwrapper import runcmd
 from acom.utils.sysutil import dtUtil
 
 class ProcessMonitor(object):
-    # log out every 5 minute, count 15, so 15minutes close once
-    CMD_NETHOGS = "nethogs -t -d60 -s -c15 -v0"
+    # can not long time running nethogs, because it will consume 99%cpu and a
+    # lot of memory.
+    # #log out every 5 minute, count 15, so 15minutes close once
+    CMD_NETHOGS = "nethogs -t -s -v0 -c1"
     TEST_OUTPUT = '''
 Refreshing:
 /usr/bin/python3/15280/1000     0.332723        0.334064
@@ -16,6 +19,9 @@ python3/14048/1001      0.0018549       0.0048275
 185.201.226.166:48840-41.250.122.248:30777/0/0  0.000154495     0.000185013
 185.201.226.166:42696-42.190.205.178:64904/0/0  0.000154495     0.000185013
     '''
+
+    def __init__(self):
+        self.interval = 60
 
     def writeStdout(self, line):
         self.parseLine(line)
@@ -31,6 +37,7 @@ python3/14048/1001      0.0018549       0.0048275
     def work(self):
         while True:
             runcmd(self.CMD_NETHOGS, trycnt=0, printout=False, callback=self)
+            sleep(self.interval)
 
     def parseLine(self, line):
         if self.isLineStartswithIp(line): return
