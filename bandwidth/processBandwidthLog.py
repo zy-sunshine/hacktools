@@ -1,9 +1,11 @@
+import sys
 import re
 from acom.utils.cmdwrapper import runcmd
 from acom.utils.sysutil import dtUtil
 
 class ProcessMonitor(object):
-    CMD_NETHOGS = "nethogs -t -d5 -s -v3"
+    # log out every 5 minute, count 15, so 15minutes close once
+    CMD_NETHOGS = "nethogs -t -d60 -s -c15 -v0"
     TEST_OUTPUT = '''
 Refreshing:
 /usr/bin/python3/15280/1000     0.332723        0.334064
@@ -27,7 +29,8 @@ python3/14048/1001      0.0018549       0.0048275
             self.writeStdout(line)
 
     def work(self):
-        runcmd(self.CMD_NETHOGS, trycnt=0, printout=False, callback=self)
+        while True:
+            runcmd(self.CMD_NETHOGS, trycnt=0, printout=False, callback=self)
 
     def parseLine(self, line):
         if self.isLineStartswithIp(line): return
@@ -41,7 +44,8 @@ python3/14048/1001      0.0018549       0.0048275
         if info['sent'] < 0.01: return  # omit 0.01MB
         if info['received'] < 0.01: return  # omit 0.01MB
         info['dt'] = dtUtil.now().strftime('%Y-%m-%d %H:%M:%S')
-        print('[%(dt)s] %(pid)s\t%(sent).02f\t%(received).02f\t%(cmdline)s' % info)
+        sys.stdout.write('[%(dt)s] %(pid)s\t%(sent).02f\t%(received).02f\t%(cmdline)s\n' % info)
+        sys.stdout.flush()
 
     IP_PATTERN = re.compile(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
     def isLineStartswithIp(self, line):
